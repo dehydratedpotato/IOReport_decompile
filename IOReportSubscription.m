@@ -15,20 +15,16 @@ IOReportInterestList* createInterest(CFArrayRef channels, int count) {
     for (int i = 0; i < count; i++) {
         CFDictionaryRef chann = (CFDictionaryRef)CFArrayGetValueAtIndex(channels, i);
         
-        IOReportChannelType type = {
-            .report_format = kIOReportFormatState,
-            .reserved = 0,
-            .categories = kIOReportCategoryPerformance,
-            .nelements = sizeof(uint64_t),
-            .element_idx = 0
-        };
+        NSNumber * legend_channel_id = (NSNumber*)CFArrayGetValueAtIndex((CFArrayRef)CFDictionaryGetValue(chann, CFSTR("LegendChannel")), kIOReportChannelIDIdx);
+        uint64_t channel_id = legend_channel_id.longValue;
         
-        NSNumber * legend_channel = (NSNumber*)CFArrayGetValueAtIndex((CFArrayRef)CFDictionaryGetValue(chann, CFSTR("LegendChannel")), kIOReportChannelIDIdx);
-        uint64_t channel_id = legend_channel.longValue;
-
+        NSNumber * legend_channel_type = (NSNumber*)CFArrayGetValueAtIndex((CFArrayRef)CFDictionaryGetValue(chann, CFSTR("LegendChannel")), kIOReportChannelTypeIdx);
+        uint64_t channel_type_ptr = legend_channel_type.longValue;
+        IOReportChannelType channel_type = *(IOReportChannelType*)&channel_type_ptr;
+        
         IOReportChannel channel = {
             .channel_id = channel_id,
-            .channel_type = type
+            .channel_type = channel_type
         };
         
         NSNumber * driver_id = (NSNumber*)CFDictionaryGetValue(chann, CFSTR("DriverID"));
