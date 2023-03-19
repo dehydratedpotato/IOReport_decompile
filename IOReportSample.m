@@ -1,15 +1,15 @@
 //
-//  re_IOReportSample.m
-//  re_IOReportReverseEngineeringTest
+//  IOReportSample.m
+//  IOReport
 //
-//  Created by Taevon Turner on 1/19/23.
+//  Created by BitesPotatoBacks on 1/19/23.
 //
 
 #import <Foundation/Foundation.h>
 #import "IOReportPrivate.h"
 
-// TODO: - Find Unit Label and State Names for State Formatted channels, support byte lengths >64 for each channel
-CFDictionaryRef re_IOReportCreateSamples(re_IOReportSubscriptionRef iorsub,
+// TODO: - Find State Names for State Formatted channels
+CFDictionaryRef IOReportCreateSamples(IOReportSubscriptionRef iorsub,
                                          CFMutableDictionaryRef subbedChannels,
                                          CFTypeRef a) {
    
@@ -27,31 +27,41 @@ CFDictionaryRef re_IOReportCreateSamples(re_IOReportSubscriptionRef iorsub,
         CFMutableArrayRef array = (CFMutableArrayRef)CFDictionaryGetValue(channels, CFSTR("IOReportChannels"));
 
         CFDataRef deets = CFDataCreateWithBytesNoCopy(0, iorsub->addr, iorsub->addrSize, kCFAllocatorNull);
+
+        int byteIndex = 0;
         
-        long size = CFDataGetLength(deets);
-        uint32_t count = re_IOReportGetChannelCount(subbedChannels);
-
-        if (size / 64 == count) {
+        for (int i = 0; i < IOReportGetChannelCount(subbedChannels); i++) {
+            CFMutableDictionaryRef channelArrayDict = (CFMutableDictionaryRef)CFArrayGetValueAtIndex(array, i);
             
-            for (long i = 0; i < count; i++) {
-                CFMutableDictionaryRef chann = (CFMutableDictionaryRef)CFArrayGetValueAtIndex(array, i);
-                CFRange range = CFRangeMake(i * 64, 64);
-                UInt8 buf[size];
+            NSNumber * legend_channel_type = (NSNumber*)CFArrayGetValueAtIndex((CFArrayRef)CFDictionaryGetValue(channelArrayDict, CFSTR("LegendChannel")), kIOReportChannelTypeIdx);
+            uint64_t channel_type_ptr = legend_channel_type.longValue;
+            IOReportChannelType* channel_type = (IOReportChannelType*)&channel_type_ptr;
+            
+            long size = channel_type->nelements * 64;
+            UInt8 buf[size];
+            CFRange range = CFRangeMake(byteIndex * 64, size);
+            CFDataGetBytes(deets, range, buf);
+            CFDataRef bytes = CFDataCreateWithBytesNoCopy(0, buf, size, kCFAllocatorNull);
+            
+            CFDictionaryAddValue(channelArrayDict, CFSTR("RawElements"), bytes);
+            
+            CFDictionaryAddValue(channelArrayDict, CFSTR("StateNames"), CFSTR(""));
 
-                CFDataGetBytes(deets, range, buf);
-                CFDataRef bytes = CFDataCreateWithBytesNoCopy(0, buf, 64, kCFAllocatorNull);
-                
-                CFDictionaryAddValue(chann, CFSTR("RawElements"), bytes);
-//                CFDictionaryAddValue(chann, CFSTR("UnitLabel"), nil);
-//                CFDictionaryAddValue(chann, CFSTR("StateNames"), nil);
-                CFArraySetValueAtIndex(array, i, chann);
-            }
+            CFArraySetValueAtIndex(array, i, channelArrayDict);
             
             CFDictionarySetValue(channels, CFSTR("IOReportChannels"), array);
             
-            return channels;
-        } else
-            return NULL;
+            byteIndex += channel_type->nelements;
+            
+            CFRelease(bytes);
+            channel_type = nil;
+        }
+
+        CFDictionarySetValue(channels, CFSTR("IOReportChannels"), array);
+        
+        CFRelease(deets);
+        
+        return channels;
     }
     
     return NULL;

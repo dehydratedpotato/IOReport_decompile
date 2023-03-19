@@ -1,8 +1,8 @@
 //
 //  main.m
-//  re_IOReportReverseEngineeringTest
+//  IOReport
 //
-//  Created by Taevon Turner on 1/18/23.
+//  Created by BitesPotatoBacks on 1/18/23.
 //
 
 #import <Foundation/Foundation.h>
@@ -10,32 +10,37 @@
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
-        NSString * group = @"GPU C-States";
+        NSString * group = @"Channel";
         
-        CFMutableDictionaryRef chn = re_IOReportCopyChannelsInGroup(group, 0, 0, 0, 0);
-//        CFMutableDictionaryRef chn = re_IOReportCopyAllChannels(0, 0);
+        CFMutableDictionaryRef chn = IOReportCopyChannelsInGroup(group, 0, 0, 0, 0); // or IOReportCopyAllChannels(0, 0);
         
-        // can be omitted, as there seemed to be no use for this param, so I added no logic for it ;)
-        CFMutableDictionaryRef subchn = NULL;
+        CFMutableDictionaryRef subchn = NULL; // can be omitted, as there seemed to be no use for this param, so I added no logic for it ;)
         
-        re_IOReportSubscriptionRef sub = re_IOReportCreateSubscription(NULL, chn, &subchn, 0, 0);
+        IOReportSubscriptionRef sub = IOReportCreateSubscription(NULL, chn, &subchn, 0, 0);
         
-        CFDictionaryRef samples = re_IOReportCreateSamples(sub, chn, NULL);
+        CFDictionaryRef samples = IOReportCreateSamples(sub, chn, NULL);
 
-        re_IOReportIterate(samples, ^(re_IOReportSampleRef sample) {
-            NSString* subgroup = re_IOReportChannelGetSubGroup(sample);
-            NSString* group = re_IOReportChannelGetGroup(sample);
-            NSString* driver = re_IOReportChannelGetDriverName(sample);
-//            NSString* idx_name = re_IOReportStateGetNameForIndex(sample, 0);
-            NSString* chann_name = re_IOReportChannelGetChannelName(sample);
-//            uint64_t  residency = re_IOReportSimpleGetIntegerValue(sample, 0);
-//
-            NSLog(@"%@ %@ %@ %@ %@ %llu", driver, group, subgroup, NULL, chann_name, NULL);
+        IOReportIterate(samples, ^(IOReportSampleRef sample) {
+            NSString* subgroup = IOReportChannelGetSubGroup(sample);
+            NSString* group = IOReportChannelGetGroup(sample);
+            NSString* driver = IOReportChannelGetDriverName(sample);
+            NSString* chann_name = IOReportChannelGetChannelName(sample);
+            NSString* unit_label = IOReportChannelGetUnitLabel(sample);
+            
+            int chann_format = IOReportChannelGetFormat(sample);
+            if (chann_format == kIOReportFormatState) {
+                int state_count = IOReportStateGetCount(sample);
+                NSString* idx_name = IOReportStateGetNameForIndex(sample, 0);
+                uint64_t  residency = IOReportSimpleGetIntegerValue(sample, 0);
+                
+                NSLog(@"driver: %@ group: %@ subgroup: %@ unit_label: %@, state_name: %@ chann_name: %@ chann_format: %u state_cnt: %u res: %llu", driver, group, subgroup, unit_label, idx_name, chann_name, chann_format, state_count, residency);
+            } else {
+                NSLog(@"driver: %@ group: %@ subgroup: %@ unit_label: %@ chann_name: %@ chann_format: %u value: %llu", driver, group, subgroup, unit_label, chann_name, chann_format, 0llu);
+            }
 
             return re_kIOReportIterOk;
         });
         
-//        CFRelease(subchn);
         CFRelease(chn);
         CFRelease(samples);
     }

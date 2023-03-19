@@ -1,8 +1,8 @@
 //
-//  re_IOReportSubscription.m
-//  re_IOReportReverseEngineeringTest
+//  IOReportSubscription.m
+//  IOReport
 //
-//  Created by Taevon Turner on 1/19/23.
+//  Created by BitesPotatoBacks on 1/19/23.
 //
 
 #import <Foundation/Foundation.h>
@@ -21,7 +21,7 @@ IOReportInterestList* createInterest(CFArrayRef channels, int count) {
         NSNumber * legend_channel_type = (NSNumber*)CFArrayGetValueAtIndex((CFArrayRef)CFDictionaryGetValue(chann, CFSTR("LegendChannel")), kIOReportChannelTypeIdx);
         uint64_t channel_type_ptr = legend_channel_type.longValue;
         IOReportChannelType channel_type = *(IOReportChannelType*)&channel_type_ptr;
-        
+    
         IOReportChannel channel = {
             .channel_id = channel_id,
             .channel_type = channel_type
@@ -47,14 +47,14 @@ IOReportInterestList* createInterest(CFArrayRef channels, int count) {
     return interestList;
 }
 
-re_IOReportSubscriptionRef re_IOReportCreateSubscription(void* a,
+IOReportSubscriptionRef IOReportCreateSubscription(void* a,
                                                    CFMutableDictionaryRef desiredChannels,
                                                    CFMutableDictionaryRef* subbedChannels,
                                                    uint64_t channel_id,
                                                    CFTypeRef b) {
     uint32_t                   count = 0;
     CFTypeID                   iorepTypeId;
-    re_IOReportSubscriptionRef iorepSubscription = NULL;
+    IOReportSubscriptionRef iorepSubscription = NULL;
     kern_return_t              kr;
     io_iterator_t              iter;
     io_service_t               service = 0;
@@ -66,11 +66,11 @@ re_IOReportSubscriptionRef re_IOReportCreateSubscription(void* a,
     else
         port = kIOMasterPortDefault;
     
-    count = re_IOReportGetChannelCount(desiredChannels);
+    count = IOReportGetChannelCount(desiredChannels);
     
     if (count > 0) {
-        iorepTypeId       = _CFRuntimeRegisterClass(&re_IOReportSubscriptionClass);
-        iorepSubscription = (re_IOReportSubscriptionRef)_CFRuntimeCreateInstance(a, iorepTypeId, 0x20, 0);
+        iorepTypeId       = _CFRuntimeRegisterClass(&IOReportSubscriptionClass);
+        iorepSubscription = (IOReportSubscriptionRef)_CFRuntimeCreateInstance(a, iorepTypeId, 0x20, 0);
     
         kr = IOServiceGetMatchingServices(port, IOServiceMatching("IOReportHub"), &iter);
         if (kr != KERN_SUCCESS) {
@@ -120,6 +120,13 @@ re_IOReportSubscriptionRef re_IOReportCreateSubscription(void* a,
             
             goto exit;
         }
+        
+//        for (int i = 0; i < count; i++) {
+//
+//        NSLog(@"%llu %llu %p", interestList->interests[i].provider_id,
+//              interestList->interests[i].channel.channel_id,
+//              interestList->interests[i].channel.channel_type);
+//        }
     }
     
 exit:

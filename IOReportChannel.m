@@ -1,14 +1,14 @@
 //
-//  re_IOReportChannel.m
-//  re_IOReportReverseEngineeringTest
+//  IOReportChannel.m
+//  IOReport
 //
-//  Created by Taevon Turner on 1/19/23.
+//  Created by BitesPotatoBacks on 1/19/23.
 //
 
 #import <Foundation/Foundation.h>
 #import "IOReportPrivate.h"
 
-// TODO: - Add IOReportCopyChannelsForDrivers,_IOReportCopyChannelsInCategories, IOReportCopyChannelsOfFormat, IOReportCopyChannelsWithID, IOReportCopyChannelsWithUnit
+// TODO: (for future) Add IOReportCopyChannelsForDrivers, IOReportCopyChannelsInCategories, IOReportCopyChannelsOfFormat, IOReportCopyChannelsWithID, IOReportCopyChannelsWithUnit
 
 CFMutableDictionaryRef copyChannel(NSString* group) {
     CFMutableDictionaryRef dict = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, nil, nil);
@@ -82,7 +82,7 @@ CFMutableDictionaryRef copyChannel(NSString* group) {
 }
 
 // The a, b, c parameters currently don't do anyhing, as they seem to originally have no purpose but add extra formatting to the returned dict...
-CFMutableDictionaryRef re_IOReportCopyChannelsInGroup(NSString* group,
+CFMutableDictionaryRef IOReportCopyChannelsInGroup(NSString* group,
                                                    NSString* subgroup,
                                                    uint64_t a,
                                                    uint64_t b,
@@ -91,11 +91,11 @@ CFMutableDictionaryRef re_IOReportCopyChannelsInGroup(NSString* group,
 }
 
 // Same here!
-CFMutableDictionaryRef re_IOReportCopyAllChannels(uint64_t a, uint64_t b) {
+CFMutableDictionaryRef IOReportCopyAllChannels(uint64_t a, uint64_t b) {
     return copyChannel(nil);
 }
 
-int re_IOReportGetChannelCount(CFDictionaryRef channels) {
+int IOReportGetChannelCount(CFDictionaryRef channels) {
     if (channels != NULL) {
         CFArrayRef channArray = CFDictionaryGetValue(channels, CFSTR("IOReportChannels"));
         return (int) CFArrayGetCount(channArray);
@@ -103,7 +103,7 @@ int re_IOReportGetChannelCount(CFDictionaryRef channels) {
     return 0;
 }
 
-NSString* re_IOReportChannelGetChannelName(CFDictionaryRef a) {
+NSString* IOReportChannelGetChannelName(CFDictionaryRef a) {
     if (a != NULL) {
         CFArrayRef arr = (CFArrayRef)CFDictionaryGetValue(a, CFSTR("LegendChannel"));
         NSString * str = (NSString*)CFArrayGetValueAtIndex(arr, kIOReportChannelNameIdx);
@@ -112,7 +112,7 @@ NSString* re_IOReportChannelGetChannelName(CFDictionaryRef a) {
     return NULL;
 }
 
-NSString* re_IOReportChannelGetGroup(CFDictionaryRef a) {
+NSString* IOReportChannelGetGroup(CFDictionaryRef a) {
     if (a != NULL) {
         NSString * str = (NSString*)CFDictionaryGetValue(a, CFSTR("IOReportGroupName"));
         return str;
@@ -120,7 +120,7 @@ NSString* re_IOReportChannelGetGroup(CFDictionaryRef a) {
     return NULL;
 }
 
-NSString* re_IOReportChannelGetSubGroup(CFDictionaryRef a) {
+NSString* IOReportChannelGetSubGroup(CFDictionaryRef a) {
     if (a != NULL) {
         NSString * str = (NSString*)CFDictionaryGetValue(a, CFSTR("IOReportSubGroupName"));
         return str;
@@ -128,7 +128,7 @@ NSString* re_IOReportChannelGetSubGroup(CFDictionaryRef a) {
     return NULL;
 }
 
-NSString* re_IOReportChannelGetDriverName(CFDictionaryRef a) {
+NSString* IOReportChannelGetDriverName(CFDictionaryRef a) {
     if (a != NULL) {
         NSString * str = (NSString*)CFDictionaryGetValue(a, CFSTR("DriverName"));
         return str;
@@ -136,18 +136,69 @@ NSString* re_IOReportChannelGetDriverName(CFDictionaryRef a) {
     return NULL;
 }
 
-// TODO: - Add after updates put in place for IOReportSample stuff
-
-NSString* re_IOReportChannelGetUnitLabel(CFDictionaryRef a) {
-    if (a != NULL) {
-
+int IOReportChannelGetFormat(CFDictionaryRef samples) {
+    if (samples != NULL) {
+        NSNumber * legend_channel_type = (NSNumber*)CFArrayGetValueAtIndex((CFArrayRef)CFDictionaryGetValue(samples, CFSTR("LegendChannel")), kIOReportChannelTypeIdx);
+        uint64_t channel_type_ptr = legend_channel_type.longValue;
+        IOReportChannelType channel_type = *(IOReportChannelType*)&channel_type_ptr;
+        
+        return (int)channel_type.report_format;
     }
-    return NULL;
+    return 0;
 }
 
-int re_IOReportChannelGetFormat(CFDictionaryRef samples) {
-    if (samples != NULL) {
+NSString* IOReportChannelGetUnitLabel(CFDictionaryRef a) {
+    if (a != NULL) {
+        NSNumber * unit_label = (NSNumber*)CFDictionaryGetValue((CFDictionaryRef)CFDictionaryGetValue(a, CFSTR("IOReportChannelInfo")), CFSTR("IOReportChannelUnit"));
         
+        switch (unit_label.unsignedLongLongValue) {
+            case kIOReportUnit1GHzTicks:
+                return @"1GTicks";
+            case kIOReportUnit24MHzTicks:
+                return @"24MTicks";
+            case kIOReportUnitHWTicks:
+                return @"HWTicks";
+            case kIOReportUnitPackets:
+                return @"packets";
+            case kIOReportUnitInstrs:
+                return @"instrs";
+            case kIOReportUnitEvents:
+                return @"events";
+            case kIOReportUnitBits:
+                return @"bits";
+            case kIOReportUnitBytes:
+                return @"bytes";
+            case kIOReportUnit_GI:
+                return @"gi";
+            case kIOReportUnit_KI:
+                return @"ki";
+            case kIOReportUnit_MI:
+                return @"mi";
+            case kIOReportUnit_ms:
+                return @"ms";
+            case kIOReportUnit_ns:
+                return @"ns";
+            case kIOReportUnit_s:
+                return @"s";
+            case kIOReportUnit_J:
+                return @"j";
+            case kIOReportUnit_mJ:
+                return @"mj";
+            case kIOReportUnit_pJ:
+                return @"pj";
+            case kIOReportUnit_uJ:
+                return @"uj";
+            case kIOReportUnit_nJ:
+                return @"nj";
+            case kIOReportUnit_GiB:
+                return @"gib";
+            case kIOReportUnit_MiB:
+                return @"mib";
+            case kIOReportUnit_KiB:
+                return @"kib";
+            case kIOReportUnitNone:
+                return @"";
+        }
     }
     return NULL;
 }

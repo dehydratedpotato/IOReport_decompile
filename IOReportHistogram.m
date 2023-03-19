@@ -1,8 +1,8 @@
 //
-//  re_IOReportHistogram.m
-//  re_IOReportReverseEngineeringTest
+//  IOReportHistogram.m
+//  IOReport
 //
-//  Created by Taevon Turner on 1/19/23.
+//  Created by BitesPotatoBacks on 1/19/23.
 //
 
 #import <Foundation/Foundation.h>
@@ -10,18 +10,18 @@
 
 // TODO: Add logic for pulling histogram bucket value stuff
 
-int re_IOReportHistogramGetBucketCount(CFDictionaryRef a) {
+int IOReportHistogramGetBucketCount(CFDictionaryRef a) {
     return 0;
 }
-int re_IOReportHistogramGetBucketMinValue(CFDictionaryRef a, int b) {
+int IOReportHistogramGetBucketMinValue(CFDictionaryRef a, int b) {
     return 0;
 }
-int re_IOReportHistogramGetBucketMaxValue(CFDictionaryRef a, int b) {
+int IOReportHistogramGetBucketMaxValue(CFDictionaryRef a, int b) {
     return 0;
 }
-int re_IOReportHistogramGetBucketSum(CFDictionaryRef a, int b) {
+int IOReportHistogramGetBucketSum(CFDictionaryRef a, int b) {
     return 0;
 }
-int re_IOReportHistogramGetBucketHits(CFDictionaryRef a, int b) {
+int IOReportHistogramGetBucketHits(CFDictionaryRef a, int b) {
     return 0;
 }

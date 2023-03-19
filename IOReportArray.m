@@ -1,8 +1,8 @@
 //
-//  re_IOReportArray.m
-//  re_IOReportReverseEngineeringTest
+//  IOReportArray.m
+//  IOReport
 //
-//  Created by Taevon Turner on 1/19/23.
+//  Created by BitesPotatoBacks on 1/19/23.
 //
 
 #import <Foundation/Foundation.h>
@@ -10,6 +10,6 @@
 
 // TODO: Add logic to calls for pulling simple array stuff
 
-uint64_t re_IOReportArrayGetValueAtIndex(CFDictionaryRef a, int b) {
+uint64_t IOReportArrayGetValueAtIndex(CFDictionaryRef a, int b) {
     return 0;
 }

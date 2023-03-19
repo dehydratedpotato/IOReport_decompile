@@ -1,8 +1,8 @@
 //
-//  re_IOReportInt.m
-//  re_IOReportReverseEngineeringTest
+//  IOReportInt.m
+//  IOReport
 //
-//  Created by Taevon Turner on 1/19/23.
+//  Created by BitesPotatoBacks on 1/19/23.
 //
 
 #import <Foundation/Foundation.h>
@@ -10,6 +10,6 @@
 
 // TODO: Add logic to calls for pulling simple int value stuff
 
-long re_IOReportSimpleGetIntegerValue(CFDictionaryRef a, int b) {
+long IOReportSimpleGetIntegerValue(CFDictionaryRef a, int b) {
     return 0;
 }
