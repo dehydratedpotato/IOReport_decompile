@@ -1,9 +1,11 @@
-// half-yolo'd decompile of a portion  of libIOReport.dylib
-//
+/*
+ * libIOReport.dylib decompiled by hand by dehydratedpotato, 2023
+ */
+
 #include <Foundation/Foundation.h>
 #include <objc/runtime.h>
 
-#include "IOReport.h"
+#include "IOReport_decompile.h"
 #include "IOReportTypes.h"
 #include "IOKernelReportStructs.h"
 
@@ -92,12 +94,8 @@ CFMutableDictionaryRef _copy_chann(NSString* group) {
     io_iterator_t iter;
     kern_return_t kr;
     io_registry_entry_t entry;
-    mach_port_t port;
-    
-    if (@available(macOS 12, *)) port = kIOMainPortDefault;
-    else port = kIOMasterPortDefault;
-    
-    kr = IORegistryCreateIterator(port, kIOServicePlane, kIORegistryIterateRecursively, &iter);
+
+    kr = IORegistryCreateIterator(kIOMainPortDefault, kIOServicePlane, kIORegistryIterateRecursively, &iter);
     if (kr != kIOReturnSuccess) return NULL;
     
     while ((entry = IOIteratorNext(iter)) != IO_OBJECT_NULL) {
@@ -123,7 +121,7 @@ CFMutableDictionaryRef _copy_chann(NSString* group) {
                     CFDictionaryAddValue(subbdict, kDriverIdKey, CFNumberCreate(kCFAllocatorDefault, kCFNumberLongLongType, &entid));
                     
                     // TODO: uncomment this. for some reason it's value is mutated after the loops are done and turns it into an array???
-//                    CFDictionaryAddValue(subbdict, kDrivernameKey, (CFStringRef) dname);
+                    CFDictionaryAddValue(subbdict, kDrivernameKey, (CFStringRef) dname);
                     
                     CFDictionaryAddValue(subbdict, CFSTR(kIOReportLegendInfoKey), CFDictionaryGetValue(key, CFSTR(kIOReportLegendInfoKey)));
                     CFDictionaryAddValue(subbdict, CFSTR(kIOReportLegendGroupNameKey), CFDictionaryGetValue(key, CFSTR(kIOReportLegendGroupNameKey)));
@@ -132,6 +130,8 @@ CFMutableDictionaryRef _copy_chann(NSString* group) {
                     
                     CFArrayAppendValue(channels, subbdict);
                 }
+                
+                
             }
         }
     }
@@ -202,41 +202,33 @@ IOReportSubscriptionRef IOReportCreateSubscription(void* a,
                                                    CFMutableDictionaryRef* subbedChannels,
                                                    uint64_t channel_id,
                                                    CFTypeRef b) {
-    uint32_t                   count = 0;
+
+    const uint32_t count = IOReportGetChannelCount(desiredChannels);
+    if (count <= 0) return NULL;
+    
     CFTypeID                   iorepTypeId;
     IOReportSubscriptionRef    iorepSubscription = NULL;
     kern_return_t              kr;
     io_iterator_t              iter;
     io_service_t               service = 0;
     io_connect_t               connection = 0;
-    mach_port_t                port;
-    
-    if (@available(macOS 12, *)) port = kIOMainPortDefault;
-    else port = kIOMasterPortDefault;
-    
-    count = IOReportGetChannelCount(desiredChannels);
-    
-    if (count <= 0) return NULL;
-    uint32_t input = count * 0x18 + 8;
+
+    const uint32_t input = count * 0x18 + 8;
     uint32_t output = 1;
-    
-    /* Init the subs types
-     */
+
     iorepTypeId       = _CFRuntimeRegisterClass(&_IOReportSubscriptionClass);
     iorepSubscription = (IOReportSubscriptionRef)_CFRuntimeCreateInstance(a, iorepTypeId, 0x20, 0);
     
-    /* prep interset list
-     */
+    // Prep the inerest list
     CFArrayRef channs = (CFArrayRef) CFDictionaryGetValue(desiredChannels, CFSTR(kIOReportLegendChannelsKey));
     IOReportInterestList* interestList = _create_interlist(channs, count);
     
-    /* match IOReportHub and open it up
-     */
-    kr = IOServiceGetMatchingServices(port, IOServiceMatching("IOReportHub"), &iter);
+    kr = IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOReportHub"), &iter);
     if (kr != KERN_SUCCESS) {
         //NSLog(@"Could not match IOReportHub, failed with %s", mach_error_string(kr));
         return NULL;
     }
+    
     while ((service = IOIteratorNext(iter)) != IO_OBJECT_NULL) {
         kr = IOServiceOpen(service, mach_task_self(), 0, &connection);
         if (kr != KERN_SUCCESS) {
@@ -247,8 +239,7 @@ IOReportSubscriptionRef IOReportCreateSubscription(void* a,
     }
     IOObjectRelease(iter);
     
-    /* open the userclient for communication
-     */
+    // open the userclient for communication
     kr = IOConnectCallScalarMethod(connection, kIOReportUserClientOpen, 0, 0, 0, 0);
     if (kr != KERN_SUCCESS) {
         //NSLog(@"kIOReportUserClientOpen failed with %s", mach_error_string(kr));
@@ -258,8 +249,7 @@ IOReportSubscriptionRef IOReportCreateSubscription(void* a,
     
     iorepSubscription->connection = connection;
     
-    /* config interests so the hub knows what data to provide
-     */
+    // config interests so the hub knows what data to provide
     kr = IOConnectCallMethod(iorepSubscription->connection,
                              kIOReportUserClientConfigureInterests,
                              NULL, 0,
@@ -270,15 +260,15 @@ IOReportSubscriptionRef IOReportCreateSubscription(void* a,
                              NULL, 0);
     if (kr != KERN_SUCCESS) {
         //NSLog(@"kIOReportUserClientConfigureInterests failed with %s", mach_error_string(kr));
-        
         free(interestList);
+        
         goto exit;
     }
     
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wconversion"
-    /* map memory from the user client so we may get our datas later
-     */
+    
+    // map memory from the user client so we may get our datas later
     kr = IOConnectMapMemory(iorepSubscription->connection,
                             iorepSubscription->dwordPtr,
                             mach_task_self(),
@@ -393,6 +383,9 @@ int IOReportGetChannelCount(CFDictionaryRef a) {
 NSString* IOReportChannelGetChannelName(CFDictionaryRef a) {
     if (a == NULL) return NULL;
     CFArrayRef arr = (CFArrayRef) CFDictionaryGetValue(a, CFSTR(kIOReportLegendChannelsKey));
+    
+    if (CFArrayGetCount(arr) < kIOReportChannelNameIdx + 1) return 0;
+    
     NSString * str = (NSString*) CFArrayGetValueAtIndex(arr, kIOReportChannelNameIdx);
     return str;
 }
@@ -501,57 +494,27 @@ long IOReportStateGetCount(CFDictionaryRef a) {
 }
 
 /* private func for reading raw elements */
-struct _IOReportRawElement* _get_raw_elements(CFDictionaryRef a,
-                                              int index,
-                                              uint8_t type) {
+void* _get_raw_elements(CFDictionaryRef a, int index, uint8_t type) {
     if (a == NULL) return NULL;
     
     CFDataRef data = CFDictionaryGetValue(a, kRawElementskey);
-    CFMutableDataRef mutable_data;
-    
-    long length = CFDataGetLength(data);
+    CFMutableDataRef mdata = CFDataCreateMutableCopy(kCFAllocatorDefault, CFDataGetLength(data), data);
 
-    if (length != 0)
-        if (length > kIOReportRawElementChunkSize) {
-            
-            UInt8 buf[kIOReportRawElementChunkSize];
-            CFRange range = CFRangeMake(index * kIOReportRawElementChunkSize, kIOReportRawElementChunkSize);
-            CFDataGetBytes(data, range, buf);
-            CFDataRef bytes = CFDataCreateWithBytesNoCopy(0, buf, kIOReportRawElementChunkSize, kCFAllocatorNull);
-            
-            mutable_data = CFDataCreateMutableCopy(kCFAllocatorDefault, kIOReportRawElementChunkSize, bytes);
-        } else {
-            mutable_data = CFDataCreateMutableCopy(kCFAllocatorDefault, kIOReportRawElementChunkSize, data);
-        }
-    else {
-        return 0;
-    }
+    if (data == NULL) return NULL;
     
-    struct _IOReportRawElement* raw = (struct _IOReportRawElement*)CFDataGetMutableBytePtr(mutable_data);
-
-    raw->type = type;
+    void* ptr = CFDataGetMutableBytePtr(mdata);
     
-    return raw;
+    return ptr;
 }
 
 long IOReportSimpleGetIntegerValue(CFDictionaryRef a, int b) {
-    if (a == NULL) return 0;
-    
-    struct _IOReportSimpleInteger * simple_struct = (struct _IOReportSimpleInteger *)_get_raw_elements(a, b, 1 /* kIOReportFormatSimple */);
-
-    if (simple_struct != NULL && simple_struct->type == 1 /* kIOReportFormatSimple */)
-        return simple_struct->qword;
-
-    return 0;
+    uint64_t* ptr = (uint64_t*)_get_raw_elements(a, b, 2);
+//
+    return *(ptr + 32);
 }
 
 uint64_t IOReportStateGetResidency(CFDictionaryRef a, int b) {
-//    if (a == NULL) return 0;
-//
-//    struct _IOReportSimpleInteger * simple_struct = (struct _IOReportSimpleInteger *)_get_raw_elements(a, b, 2 /* kIOReportFormatState */);
-//
-//    if (simple_struct != NULL && simple_struct->type == 2 /* kIOReportFormatState */)
-//        return simple_struct->qword;
+    uint64_t* ptr = (uint64_t*)_get_raw_elements(a, b, 2);
 
     return 0;
 }
