@@ -1,12 +1,10 @@
-//
-//  main.m
-//  IOReport
-//
-//  Created by BitesPotatoBacks on 1/18/23.
-//
+/* Testing out IOReport
+ *
+ * code by dehydratedpotato, 2023
+ */
 
 #import <Foundation/Foundation.h>
-#import "IOReport.h"
+#import "IOReport_decompile.h"
 
 typedef uint8_t IOReportFormat;
 enum {
@@ -19,7 +17,7 @@ enum {
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
-        NSString * group = @"GPU C-States";
+        NSString * group = @"CPU Stats";
         
         CFMutableDictionaryRef chn = IOReportCopyChannelsInGroup(group, 0, 0, 0, 0); // or IOReportCopyAllChannels(0, 0);
         
